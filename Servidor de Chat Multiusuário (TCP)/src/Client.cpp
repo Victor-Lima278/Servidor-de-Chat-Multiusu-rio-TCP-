@@ -1,25 +1,38 @@
-#include "Logger.hpp"
-#include <thread>
-#include <vector>
+#include "Server.hpp"
+#include "tslog.hpp"
 #include <iostream>
+#include <csignal>
+#include <atomic>
 
-void worker(int id) {
-    for (int i = 0; i < 100; i++) {
-        Logger::getInstance().log("Thread " + std::to_string(id) + " mensagem " + std::to_string(i));
-    }
+std::atomic<bool> running(true);
+
+void signalHandler(int signum) {
+    running = false;
 }
 
 int main() {
-    std::vector<std::thread> threads;
+    // captura Ctrl+C (SIGINT) para encerrar servidor corretamente
+    std::signal(SIGINT, signalHandler);
 
-    for (int i = 0; i < 4; i++) {
-        threads.emplace_back(worker, i);
+    try {
+        tslog::init("chat_log.txt");
+
+        Server server(8080);
+        server.start();
+
+        std::cout << "Servidor rodando na porta 8080. Pressione Ctrl+C para encerrar.\n";
+
+        while (running) {
+            std::this_thread::sleep_for(std::chrono::seconds(1));
+        }
+
+        server.stop();
+        tslog::close();
+    } catch (const std::exception& e) {
+        tslog::log("Erro no servidor: " + std::string(e.what()));
+        std::cerr << "Erro no servidor: " << e.what() << std::endl;
+        tslog::close();
     }
 
-    for (auto& t : threads) {
-        t.join();
-    }
-
-    std::cout << "Logs gerados em chat_log.txt" << std::endl;
     return 0;
 }
