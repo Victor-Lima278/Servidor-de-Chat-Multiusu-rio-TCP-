@@ -1,10 +1,21 @@
 #ifndef CLIENT_HPP
 #define CLIENT_HPP
 
+#include <string>
+
 class Client {
 public:
-    void connectToServer(const char* ip, int port);
-    void sendMessage(const char* msg);
+    Client(const std::string& ip, int port);
+    ~Client();
+
+    void start();
+
+private:
+    int sock;
+    std::string server_ip;
+    int server_port;
+
+    void sendLoop();
     void receiveLoop();
 };
 
